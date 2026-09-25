@@ -13,38 +13,42 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Create auth user
+    // Create auth user with metadata
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: true
+      email_confirm: true,
+      user_metadata: {
+        full_name: full_name || '',
+        phone: phone || ''
+      }
     });
 
     if (authError) {
       return res.status(400).json({ error: authError.message });
     }
 
-    // Create user profile
-    const { error: profileError } = await supabase
+    // Update user profile (the trigger will have created it, but we can add more info)
+    const { error: updateError } = await supabase
       .from('users')
-      .insert({
-        id: authData.user.id,
-        email,
-        full_name,
-        phone
-      });
+      .update({
+        full_name: full_name || '',
+        phone: phone || ''
+      })
+      .eq('id', authData.user.id);
 
-    if (profileError) {
-      return res.status(400).json({ error: profileError.message });
+    if (updateError) {
+      console.warn('Profile update warning:', updateError);
     }
 
-    // Create default account
+    // Create default checking account
     await supabase
       .from('accounts')
       .insert({
         user_id: authData.user.id,
         account_type: 'checking',
-        balance: 0
+        balance: 0,
+        account_number: `ZEN${Date.now().toString().slice(-10)}`
       });
 
     res.status(201).json({

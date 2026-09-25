@@ -1,13 +1,15 @@
 -- Zenith Bank App - PostgreSQL Schema
 -- Run this SQL in Supabase SQL Editor
+-- This schema enables user creation, login, and all banking operations
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create users table (extends Supabase auth.users)
+-- This table stores additional user profile information
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT UNIQUE NOT NULL,
+  email TEXT NOT NULL,
   full_name TEXT,
   phone TEXT,
   account_number TEXT UNIQUE,
@@ -126,6 +128,7 @@ ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.loans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
 
 -- Users policies
 CREATE POLICY "Users can read their own data" 
@@ -136,10 +139,18 @@ CREATE POLICY "Users can update their own data"
   ON public.users FOR UPDATE 
   USING (auth.uid() = id);
 
+CREATE POLICY "Users can create their own profile"
+  ON public.users FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
 -- Accounts policies
 CREATE POLICY "Users can read their own accounts" 
   ON public.accounts FOR SELECT 
   USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create their own accounts" 
+  ON public.accounts FOR INSERT 
+  WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can update their own accounts" 
   ON public.accounts FOR UPDATE 
@@ -162,6 +173,14 @@ CREATE POLICY "Users can create transactions in their accounts"
     )
   );
 
+CREATE POLICY "Users can update transactions in their accounts"
+  ON public.transactions FOR UPDATE
+  USING (
+    account_id IN (
+      SELECT id FROM public.accounts WHERE user_id = auth.uid()
+    )
+  );
+
 -- Payments policies
 CREATE POLICY "Users can read their own payments" 
   ON public.payments FOR SELECT 
@@ -170,6 +189,10 @@ CREATE POLICY "Users can read their own payments"
 CREATE POLICY "Users can create payments" 
   ON public.payments FOR INSERT 
   WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their payments"
+  ON public.payments FOR UPDATE
+  USING (auth.uid() = user_id);
 
 -- Bills policies
 CREATE POLICY "Users can read their own bills" 
@@ -189,6 +212,11 @@ CREATE POLICY "Users can create loan applications"
   ON public.loans FOR INSERT 
   WITH CHECK (auth.uid() = user_id);
 
+-- Services - anyone can read active services
+CREATE POLICY "Anyone can read active services"
+  ON public.services FOR SELECT
+  USING (is_active = true);
+
 -- Insert default services
 INSERT INTO public.services (name, description, category, is_active) VALUES
 ('Send Money', 'Transfer money to other accounts', 'transfers', true),
@@ -204,6 +232,23 @@ INSERT INTO public.services (name, description, category, is_active) VALUES
 ('Shopping', 'Exclusive shopping discounts', 'shopping', true),
 ('Education', 'Education loans and scholarships', 'lending', true)
 ON CONFLICT (name) DO NOTHING;
+
+-- Create function to handle new user signup
+-- This function automatically creates a profile when a user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, email, full_name)
+  VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name');
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger for new user signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
