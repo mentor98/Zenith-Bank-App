@@ -53,55 +53,13 @@ interface Props {
   activeTab: string;
   userName: string;
   onLogout: () => void;
+  onOpenService: (serviceId: string) => void;
 }
 
-export default function HomeScreen({ onNavigate, activeTab, userName, onLogout }: Props) {
+export default function HomeScreen({ onNavigate, activeTab, userName, onLogout, onOpenService }: Props) {
   const handleServiceClick = (serviceId: string) => {
-    // Handle different service types
-    switch (serviceId) {
-      case 'transfer':
-        // Show toast or modal: Transfer feature coming soon
-        alert('💸 Transfer feature - Coming Soon!');
-        break;
-      case 'pay-bills':
-        alert('💰 Pay Bills - Coming Soon!');
-        break;
-      case 'airtime':
-        alert('📱 Buy Airtime - Coming Soon!');
-        break;
-      case 'cards':
-        alert('💳 Cards Management - Coming Soon!');
-        break;
-      case 'locate-us':
-        alert('📍 Find Nearest Branch - Coming Soon!');
-        break;
-      case 'beneficiaries':
-        alert('👥 Manage Beneficiaries - Coming Soon!');
-        break;
-      case 'forex':
-        alert('💱 Forex Services - Coming Soon!');
-        break;
-      case 'finance-manager':
-        alert('📊 Finance Manager - Coming Soon!');
-        break;
-      case 'settings':
-        alert('⚙️ Settings - Coming Soon!');
-        break;
-      case 'alerts':
-        alert('🔔 Alerts & Notifications - Coming Soon!');
-        break;
-      case 'qr-payments':
-        alert('📲 QR Payments - Coming Soon!');
-        break;
-      case 'profile':
-        alert('👤 User Profile - Coming Soon!');
-        break;
-      case 'upcoming':
-        alert('📅 Upcoming Events - Coming Soon!');
-        break;
-      default:
-        break;
-    }
+    // Open service page instead of alert
+    onOpenService(serviceId);
   };
 
   return (
