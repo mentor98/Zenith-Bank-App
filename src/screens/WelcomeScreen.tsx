@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { supabase } from "../lib/supabase";
+
 const assetPathPrefix = "/assets";
 const imgVisual3D = `${assetPathPrefix}/41640.png`;
 const imgArrowRight = `${assetPathPrefix}/87f08.svg`;
@@ -8,6 +11,196 @@ interface Props {
 }
 
 export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [showSignupForm, setShowSignupForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+
+      setEmail("");
+      setPassword("");
+      setShowLoginForm(false);
+      onLogin();
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone: phone,
+          },
+        },
+      });
+
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
+
+      setEmail("");
+      setPassword("");
+      setFullName("");
+      setPhone("");
+      setShowSignupForm(false);
+      alert("Account created! Please login with your credentials.");
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (showLoginForm) {
+    return (
+      <div className="bg-gradient-to-b from-[#0a0e17] to-[#1a1f2e] flex flex-col w-full h-full overflow-hidden">
+        <div className="flex flex-col gap-8 items-center justify-center flex-1 px-6">
+          <div className="flex gap-2 items-center">
+            <div className="bg-gradient-to-br from-[#ff5d62] to-[#d60a14] flex items-center justify-center rounded-lg w-10 h-10 shadow-lg">
+              <p className="font-black text-2xl text-white">Z</p>
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="font-extrabold text-lg text-white tracking-wide">ZENITH BANK</p>
+              <p className="font-semibold text-[#ff8a8f] text-xs">LOGIN</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+              required
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+              required
+            />
+            {error && <p className="text-red-400 text-sm">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#ff5d62] to-[#d60a14] py-3 rounded-lg text-white font-bold hover:shadow-lg active:scale-95 disabled:opacity-50 transition-all"
+            >
+              {loading ? "Loading..." : "Sign In"}
+            </button>
+          </form>
+
+          <button
+            onClick={() => setShowLoginForm(false)}
+            className="text-[#ff8a8f] text-sm hover:text-white transition-colors"
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (showSignupForm) {
+    return (
+      <div className="bg-gradient-to-b from-[#0a0e17] to-[#1a1f2e] flex flex-col w-full h-full overflow-y-auto">
+        <div className="flex flex-col gap-8 items-center justify-center flex-1 px-6 py-8">
+          <div className="flex gap-2 items-center">
+            <div className="bg-gradient-to-br from-[#ff5d62] to-[#d60a14] flex items-center justify-center rounded-lg w-10 h-10 shadow-lg">
+              <p className="font-black text-2xl text-white">Z</p>
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="font-extrabold text-lg text-white tracking-wide">ZENITH BANK</p>
+              <p className="font-semibold text-[#ff8a8f] text-xs">CREATE ACCOUNT</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSignup} className="w-full max-w-sm space-y-4">
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+              required
+            />
+            <input
+              type="tel"
+              placeholder="Phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+              required
+            />
+            {error && <p className="text-red-400 text-sm">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[#ff5d62] to-[#d60a14] py-3 rounded-lg text-white font-bold hover:shadow-lg active:scale-95 disabled:opacity-50 transition-all"
+            >
+              {loading ? "Creating..." : "Create Account"}
+            </button>
+          </form>
+
+          <button
+            onClick={() => setShowSignupForm(false)}
+            className="text-[#ff8a8f] text-sm hover:text-white transition-colors"
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gradient-to-b from-[#0a0e17] to-[#1a1f2e] flex flex-col items-start justify-between w-full h-full overflow-hidden relative">
       {/* Background Pattern */}
@@ -48,7 +241,7 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
         </div>
         <div className="flex flex-col gap-[12px] items-start w-full">
           <button
-            onClick={onLogin}
+            onClick={() => setShowLoginForm(true)}
             className="bg-gradient-to-r from-[#ff5d62] to-[#d60a14] flex gap-[8px] h-[54px] items-center justify-center rounded-[28px] w-full cursor-pointer border-0 shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
           >
             <p className="font-['Inter:Bold'] font-bold text-[16px] text-white">Login</p>
@@ -57,7 +250,7 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
             </div>
           </button>
           <button
-            onClick={onOpenAccount}
+            onClick={() => setShowSignupForm(true)}
             className="border-2 border-solid border-white flex h-[54px] items-center justify-center rounded-[28px] w-full cursor-pointer bg-transparent hover:bg-white/5 transition-all duration-200 active:scale-95"
           >
             <p className="font-['Inter:Bold'] font-bold text-[16px] text-white">Open an account</p>
