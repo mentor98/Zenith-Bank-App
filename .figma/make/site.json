@@ -1,0 +1,10 @@
+{
+  "description": "Streamline document conversion with this user-friendly web app, enabling users to effortlessly transform files into various formats for easy sharing and accessibility.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
