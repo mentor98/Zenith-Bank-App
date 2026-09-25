@@ -2,8 +2,7 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 const assetPathPrefix = "/assets";
-const imgVisual3D = `${assetPathPrefix}/41640.png`;
-const imgArrowRight = `${assetPathPrefix}/87f08.svg`;
+const bgImage = `${assetPathPrefix}/41640.png`;
 
 interface Props {
   onLogin: () => void;
@@ -84,15 +83,26 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
 
   if (showLoginForm) {
     return (
-      <div className="bg-gradient-to-b from-[#0a0e17] to-[#1a1f2e] flex flex-col w-full h-full overflow-hidden">
-        <div className="flex flex-col gap-8 items-center justify-center flex-1 px-6">
+      <div 
+        className="relative flex flex-col w-full h-full overflow-hidden"
+        style={{
+          backgroundImage: `url('${bgImage}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {/* Blurred Background */}
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
+        
+        {/* Content */}
+        <div className="relative flex flex-col gap-8 items-center justify-center flex-1 px-6 z-10">
           <div className="flex gap-2 items-center">
             <div className="bg-gradient-to-br from-[#ff5d62] to-[#d60a14] flex items-center justify-center rounded-lg w-10 h-10 shadow-lg">
               <p className="font-black text-2xl text-white">Z</p>
             </div>
             <div className="flex flex-col gap-1">
               <p className="font-extrabold text-lg text-white tracking-wide">ZENITH BANK</p>
-              <p className="font-semibold text-[#ff8a8f] text-xs">LOGIN</p>
+              <p className="font-semibold text-[#ff8a8f] text-xs">SIGN IN</p>
             </div>
           </div>
 
@@ -102,7 +112,7 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+              className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-[#ff5d62] focus:bg-white/30 transition-all"
               required
             />
             <input
@@ -110,24 +120,24 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+              className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-[#ff5d62] focus:bg-white/30 transition-all"
               required
             />
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-red-300 text-sm bg-red-500/20 p-2 rounded">{error}</p>}
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-gradient-to-r from-[#ff5d62] to-[#d60a14] py-3 rounded-lg text-white font-bold hover:shadow-lg active:scale-95 disabled:opacity-50 transition-all"
             >
-              {loading ? "Loading..." : "Sign In"}
+              {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
           <button
             onClick={() => setShowLoginForm(false)}
-            className="text-[#ff8a8f] text-sm hover:text-white transition-colors"
+            className="text-white/80 text-sm hover:text-white transition-colors underline"
           >
-            Back
+            Back to home
           </button>
         </div>
       </div>
@@ -136,8 +146,19 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
 
   if (showSignupForm) {
     return (
-      <div className="bg-gradient-to-b from-[#0a0e17] to-[#1a1f2e] flex flex-col w-full h-full overflow-y-auto">
-        <div className="flex flex-col gap-8 items-center justify-center flex-1 px-6 py-8">
+      <div 
+        className="relative flex flex-col w-full h-full overflow-y-auto"
+        style={{
+          backgroundImage: `url('${bgImage}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {/* Blurred Background */}
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
+        
+        {/* Content */}
+        <div className="relative flex flex-col gap-8 items-center justify-center flex-1 px-6 py-8 z-10">
           <div className="flex gap-2 items-center">
             <div className="bg-gradient-to-br from-[#ff5d62] to-[#d60a14] flex items-center justify-center rounded-lg w-10 h-10 shadow-lg">
               <p className="font-black text-2xl text-white">Z</p>
@@ -154,7 +175,7 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
               placeholder="Full Name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+              className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-[#ff5d62] focus:bg-white/30 transition-all"
               required
             />
             <input
@@ -162,7 +183,7 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+              className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-[#ff5d62] focus:bg-white/30 transition-all"
               required
             />
             <input
@@ -170,17 +191,17 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
               placeholder="Phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+              className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-[#ff5d62] focus:bg-white/30 transition-all"
             />
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#ff5d62]"
+              className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-[#ff5d62] focus:bg-white/30 transition-all"
               required
             />
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-red-300 text-sm bg-red-500/20 p-2 rounded">{error}</p>}
             <button
               type="submit"
               disabled={loading}
@@ -192,9 +213,9 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
 
           <button
             onClick={() => setShowSignupForm(false)}
-            className="text-[#ff8a8f] text-sm hover:text-white transition-colors"
+            className="text-white/80 text-sm hover:text-white transition-colors underline"
           >
-            Back
+            Back to home
           </button>
         </div>
       </div>
@@ -224,7 +245,7 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
 
       {/* Hero Image */}
       <div className="flex-1 relative w-full flex items-center justify-center">
-        <img alt="" className="absolute inset-0 max-w-none object-cover size-full opacity-90" src={imgVisual3D} />
+        <img alt="" className="absolute inset-0 max-w-none object-cover size-full opacity-90" src={bgImage} />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0e17] via-transparent to-transparent" />
       </div>
 
@@ -245,9 +266,6 @@ export default function WelcomeScreen({ onLogin, onOpenAccount }: Props) {
             className="bg-gradient-to-r from-[#ff5d62] to-[#d60a14] flex gap-[8px] h-[54px] items-center justify-center rounded-[28px] w-full cursor-pointer border-0 shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
           >
             <p className="font-['Inter:Bold'] font-bold text-[16px] text-white">Login</p>
-            <div className="size-[16px] relative shrink-0">
-              <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgArrowRight} />
-            </div>
           </button>
           <button
             onClick={() => setShowSignupForm(true)}
