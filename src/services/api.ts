@@ -1,175 +1,263 @@
-/**
- * API Service - Central point for all backend communication
- * Configured to work with the JavaScript backend
- */
+import { supabase } from '../lib/supabase';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-export interface LoginPayload {
+interface AuthCredentials {
   email: string;
   password: string;
+  full_name?: string;
+  phone?: string;
 }
 
-export interface TransferPayload {
-  toAccount: string;
+interface PaymentInitializePayload {
   amount: number;
-  description?: string;
-}
-
-export interface UserProfile {
-  id: string;
-  name: string;
   email: string;
-  accountNumber: string;
-  balance: number;
-  phone: string;
-  createdAt: string;
+  description?: string;
+  billType?: string;
 }
 
-/**
- * Fetch helper with error handling
- */
-async function fetchApi<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<ApiResponse<T>> {
-  try {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const token = localStorage.getItem('authToken');
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+// Auth API
+export const authApi = {
+  async signup(credentials: AuthCredentials) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials)
+      });
+      if (!response.ok) throw new Error('Signup failed');
+      return await response.json();
+    } catch (error) {
+      console.error('Signup error:', error);
+      throw error;
     }
+  },
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return {
-        success: false,
-        error: errorData.error || `HTTP Error: ${response.status}`,
-      };
+  async login(email: string, password: string) {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
+  },
 
-    const data = await response.json();
-    return {
-      success: true,
-      data,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    };
+  async logout() {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
+  },
+
+  async getProfile() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to get profile');
+      return await response.json();
+    } catch (error) {
+      console.error('Get profile error:', error);
+      throw error;
+    }
+  },
+
+  async updateProfile(data: Record<string, unknown>) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to update profile');
+      return await response.json();
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
   }
-}
+};
 
-/**
- * Authentication endpoints
- */
-export const authAPI = {
-  login: async (payload: LoginPayload) => {
-    const response = await fetchApi<{ token: string; user: UserProfile }>(
-      '/auth/login',
-      {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }
-    );
+// Transactions API
+export const transactionsApi = {
+  async getTransactions() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
 
-    if (response.success && response.data?.token) {
-      localStorage.setItem('authToken', response.data.token);
+      const response = await fetch(`${API_BASE_URL}/transactions`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to get transactions');
+      return await response.json();
+    } catch (error) {
+      console.error('Get transactions error:', error);
+      throw error;
     }
-
-    return response;
   },
 
-  signup: async (payload: LoginPayload & { name: string }) => {
-    return fetchApi<{ token: string; user: UserProfile }>(
-      '/auth/signup',
-      {
+  async createTransaction(data: Record<string, unknown>) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+
+      const response = await fetch(`${API_BASE_URL}/transactions`, {
         method: 'POST',
-        body: JSON.stringify(payload),
-      }
-    );
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to create transaction');
+      return await response.json();
+    } catch (error) {
+      console.error('Create transaction error:', error);
+      throw error;
+    }
   },
 
-  logout: () => {
-    localStorage.removeItem('authToken');
-    return { success: true };
+  async getBalance(accountId: string) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+
+      const response = await fetch(`${API_BASE_URL}/transactions/balance/${accountId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to get balance');
+      return await response.json();
+    } catch (error) {
+      console.error('Get balance error:', error);
+      throw error;
+    }
+  }
+};
+
+// Payments API
+export const paymentsApi = {
+  async initializePayment(payload: PaymentInitializePayload) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+
+      const response = await fetch(`${API_BASE_URL}/payments/initialize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error('Failed to initialize payment');
+      return await response.json();
+    } catch (error) {
+      console.error('Initialize payment error:', error);
+      throw error;
+    }
   },
 
-  getProfile: () => fetchApi<UserProfile>('/auth/profile'),
+  async verifyPayment(reference: string) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+
+      const response = await fetch(`${API_BASE_URL}/payments/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ reference })
+      });
+      if (!response.ok) throw new Error('Failed to verify payment');
+      return await response.json();
+    } catch (error) {
+      console.error('Verify payment error:', error);
+      throw error;
+    }
+  },
+
+  async getPaymentHistory() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+
+      const response = await fetch(`${API_BASE_URL}/payments/history`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to get payment history');
+      return await response.json();
+    } catch (error) {
+      console.error('Get payment history error:', error);
+      throw error;
+    }
+  }
 };
 
-/**
- * Transaction endpoints
- */
-export const transactionAPI = {
-  getTransactions: (limit: number = 10) =>
-    fetchApi(`/transactions?limit=${limit}`),
+// Database queries (direct Supabase access for read-only data)
+export const dbApi = {
+  async getServices() {
+    try {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Get services error:', error);
+      throw error;
+    }
+  },
 
-  transfer: (payload: TransferPayload) =>
-    fetchApi('/transactions/transfer', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  getRecipients: () => fetchApi('/transactions/recipients'),
+  async getAccounts() {
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*');
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Get accounts error:', error);
+      throw error;
+    }
+  }
 };
 
-/**
- * Account endpoints
- */
-export const accountAPI = {
-  getBalance: () => fetchApi<{ balance: number }>('/account/balance'),
-
-  getAccountDetails: () => fetchApi<any>('/account/details'),
-
-  updateProfile: (data: Partial<UserProfile>) =>
-    fetchApi('/account/profile', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-};
-
-/**
- * Services endpoints
- */
-export const servicesAPI = {
-  payBills: (payload: { billerId: string; amount: number }) =>
-    fetchApi('/services/pay-bills', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  buyAirtime: (payload: { phone: string; amount: number; provider: string }) =>
-    fetchApi('/services/airtime', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  getExchangeRates: () => fetchApi('/services/forex/rates'),
-};
-
-export default {
-  authAPI,
-  transactionAPI,
-  accountAPI,
-  servicesAPI,
+// Health check
+export const healthCheck = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/health`);
+    return response.ok;
+  } catch {
+    return false;
+  }
 };

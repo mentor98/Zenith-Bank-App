@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "./lib/supabase";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 import WelcomeScreen from "./screens/WelcomeScreen";
 import HomeScreen from "./screens/HomeScreen";
 import ProductsServicesScreen from "./screens/ProductsServicesScreen";
@@ -10,6 +12,8 @@ type Screen = "welcome" | "home" | "products" | "lifestyle" | "service";
 interface UserState {
   isLoggedIn: boolean;
   userName: string;
+  email?: string;
+  supabaseUser?: SupabaseUser;
 }
 
 interface ServiceData {
@@ -224,8 +228,62 @@ export default function App() {
   const [activeService, setActiveService] = useState<ServiceData | null>(null);
   const [user, setUser] = useState<UserState>({
     isLoggedIn: false,
-    userName: "Emmanuel",
+    userName: "User",
   });
+  const [loading, setLoading] = useState(true);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const userName = session.user.email?.split('@')[0] || "User";
+          setUser({
+            isLoggedIn: true,
+            userName: userName,
+            email: session.user.email,
+            supabaseUser: session.user
+          });
+          setScreen("home");
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
+
+    // Subscribe to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          const userName = session.user.email?.split('@')[0] || "User";
+          setUser({
+            isLoggedIn: true,
+            userName: userName,
+            email: session.user.email,
+            supabaseUser: session.user
+          });
+          if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+            setScreen("home");
+          }
+        } else {
+          setUser({
+            isLoggedIn: false,
+            userName: "User",
+          });
+          setScreen("welcome");
+        }
+      }
+    );
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   const handleLogin = () => {
     setUser({ ...user, isLoggedIn: true });
@@ -237,9 +295,14 @@ export default function App() {
     setScreen("home");
   };
 
-  const handleLogout = () => {
-    setUser({ isLoggedIn: false, userName: "Emmanuel" });
-    setScreen("welcome");
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser({ isLoggedIn: false, userName: "User" });
+      setScreen("welcome");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   const handleNavigate = (newScreen: Screen) => {
@@ -257,41 +320,52 @@ export default function App() {
   return (
     <div className="h-dvh w-full flex items-center justify-center bg-gradient-to-br from-[#f5f6f8] via-[#eef0f5] to-[#e5e8f0] overflow-hidden">
       <div className="relative w-full max-w-[390px] h-full bg-[#f5f6f8] flex flex-col overflow-hidden shadow-2xl rounded-lg md:rounded-2xl">
-        {screen === "welcome" && !user.isLoggedIn && (
-          <WelcomeScreen onLogin={handleLogin} onOpenAccount={handleOpenAccount} />
-        )}
-        {screen === "home" && user.isLoggedIn && (
-          <HomeScreen
-            onNavigate={handleNavigate}
-            activeTab="home"
-            userName={user.userName}
-            onLogout={handleLogout}
-            onOpenService={handleOpenService}
-          />
-        )}
-        {screen === "products" && user.isLoggedIn && (
-          <ProductsServicesScreen
-            onBack={() => setScreen("home")}
-            onNavigate={handleNavigate}
-          />
-        )}
-        {screen === "lifestyle" && user.isLoggedIn && (
-          <LifestyleScreen
-            onBack={() => setScreen("home")}
-            onNavigate={handleNavigate}
-          />
-        )}
-        {screen === "service" && user.isLoggedIn && activeService && (
-          <ServicePage
-            serviceId={activeService.id}
-            icon={activeService.icon}
-            title={activeService.title}
-            description={activeService.description}
-            fullDescription={activeService.fullDescription}
-            features={activeService.features}
-            onBack={() => setScreen("home")}
-            onNavigate={handleNavigate}
-          />
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {screen === "welcome" && !user.isLoggedIn && (
+              <WelcomeScreen onLogin={handleLogin} onOpenAccount={handleOpenAccount} />
+            )}
+            {screen === "home" && user.isLoggedIn && (
+              <HomeScreen
+                onNavigate={handleNavigate}
+                activeTab="home"
+                userName={user.userName}
+                onLogout={handleLogout}
+                onOpenService={handleOpenService}
+              />
+            )}
+            {screen === "products" && user.isLoggedIn && (
+              <ProductsServicesScreen
+                onBack={() => setScreen("home")}
+                onNavigate={handleNavigate}
+              />
+            )}
+            {screen === "lifestyle" && user.isLoggedIn && (
+              <LifestyleScreen
+                onBack={() => setScreen("home")}
+                onNavigate={handleNavigate}
+              />
+            )}
+            {screen === "service" && user.isLoggedIn && activeService && (
+              <ServicePage
+                serviceId={activeService.id}
+                icon={activeService.icon}
+                title={activeService.title}
+                description={activeService.description}
+                fullDescription={activeService.fullDescription}
+                features={activeService.features}
+                onBack={() => setScreen("home")}
+                onNavigate={handleNavigate}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
